@@ -28,20 +28,29 @@ fs.rm(projectDistPath, {recursive: true, force: true}, (error) => {
 				throw error;
 			}
 
-			const writeStream = fs.createWriteStream(stylePath);
+			const stylePromises = [];
+
 			cssFiles.forEach((cssFile) => {
 					if (cssFile.isFile()) {
 						let parse = path.parse(cssFile.name);
 
 						if (parse.ext === '.css') {
 							const cssFilePath = path.join(stylesDirPath, cssFile.name);
-							const readStream = fs.createReadStream(cssFilePath);
 
-							readStream.pipe(writeStream);
+							stylePromises.push(fs.promises.readFile(cssFilePath, 'utf8'));
 						}
 					}
 				}
 			);
+			let style;
+
+			Promise.all(stylePromises).then((styleArr) => {
+				style = styleArr.join('\n\n');
+
+				const styleWriteStream = fs.createWriteStream(stylePath);
+				styleWriteStream.write(style);
+				styleWriteStream.end();
+			});
 		});
 
 		fs.readFile(templatePath, 'utf8', (error, template) => {
